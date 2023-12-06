@@ -40,20 +40,24 @@ export class OpenApiRefactorer {
   ): RefactoredObject<PathsObject> {
     const paths: Map<string, PathsObject> = new Map();
     const newPathObject: { [pathStr: string]: any } = {};
-
+    const pathStrObj: { [pathStr: string]: any } = {};
     for (const [path, obj] of Object.entries(pathsObject)) {
-      const pathStr = path.replace(/^\//, ''); // remove heading slash
-
+      const pathStr = path.replace(/^\//, '').replace(/\/$/,'').replace(/\//g, '-'); // remove heading slash
+      const pathStrRef = pathStr.split('-');
       const relativeSubPath =
-        relativePath + '/' + pathStr + this.outputExtension;
+        `${relativePath}/${pathStrRef[0]}/${pathStrRef[1]}${this.outputExtension}`
 
       // the relative path of the output root starting from the `relativeSubPath`
       const relativeBackwardPath =
         backwardsPath(dirname(relativeSubPath)) + '/' + this.outputFile;
-
-      paths.set(pathStr, this.updateReferences(obj, relativeBackwardPath));
+      let objParent = {
+        paths: {}
+      };
+      pathStrObj[`${pathStrRef[0]}/${pathStrRef[1]}`] = pathStrObj[`${pathStrRef[0]}/${pathStrRef[1]}`] || {}
+      pathStrObj[`${pathStrRef[0]}/${pathStrRef[1]}`][pathStr] = this.updateReferences(obj, relativeBackwardPath);
+      paths.set(`${pathStrRef[0]}/${pathStrRef[1]}`, pathStrObj[`${pathStrRef[0]}/${pathStrRef[1]}`]);
       newPathObject[path] = {
-        $ref: fromFileSystemPath(relativeSubPath) + '#',
+        $ref: fromFileSystemPath(relativeSubPath) + '#/' + pathStr,
       };
     }
 
